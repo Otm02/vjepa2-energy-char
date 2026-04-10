@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-03-30T23:11:04",
+  "launcher": "slurm",
+  "modes": [
+    "baseline",
+    "codecarbon",
+    "finegrained"
+  ],
+  "batch_sizes": [
+    2,
+    1
+  ],
+  "runs": [
+    1,
+    2,
+    3
+  ],
+  "run_minutes": 5.0,
+  "epochs_upper_bound": 100,
+  "sample_interval_secs": 0.5,
+  "dataset_csv": "${COMP597_JOB_STUDENT_STORAGE_DIR}/vjepa_data/videodataset.csv",
+  "note": "Primary physical batch-size study defaults to [2, 1]. This intentionally documents the likely V-JEPA2 fit constraint on RTX 5000 Ada instead of silently inventing a third physical batch size."
+}

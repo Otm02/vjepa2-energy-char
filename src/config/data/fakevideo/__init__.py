@@ -1,0 +1,1 @@
+from src.config.data.fakevideo.fakevideo_config import *

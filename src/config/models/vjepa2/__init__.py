@@ -1,0 +1,1 @@
+from src.config.models.vjepa2.vjepa2_config import *

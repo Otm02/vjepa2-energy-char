@@ -1,0 +1,2 @@
+project_name,run_num,sample_interval_s,epochs_observed,steps_observed,wall_time_s,mean_total_step_ms,std_total_step_ms,mean_forward_ms,mean_backward_ms,mean_optimizer_step_ms,mean_ema_update_ms,final_loss,codecarbon_gpu_energy_kwh
+vjepa2,2,0.5,4,611,300.163,458.274,42.09,166.467,137.479,139.124,26.966,0.01322,0.01571678146230937
