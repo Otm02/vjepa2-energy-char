@@ -1,10 +1,39 @@
-# V-JEPA2 project — how to run everything
+# Energy characterization of V-JEPA2 training
+
+Where does the training energy of a ViT-Huge video Transformer go on one GPU? This repository
+instruments V-JEPA2 self-supervised video pretraining on the McGill SOCS teaching cluster
+(course training stack, COMP 597) and measures it three ways: an uninstrumented baseline,
+CodeCarbon end-to-end GPU energy, and a fine-grained profiler with CUDA-synchronized per-phase
+timings and 500 ms GPU/CPU/memory telemetry.
+
+**Report:** [PDF](https://athmanebenarous.com/papers/vjepa2-energy.pdf) · **Write-up:**
+[athmanebenarous.com/work/vjepa2-energy](https://athmanebenarous.com/work/vjepa2-energy)
+
+## Results
+
+18 runs: 3 measurement modes × 2 batch sizes × 3 repetitions, 5 minutes each.
+
+- **GPU-centric, but not GPU-saturating.** Forward and backward phases dominate step time. Mean
+  GPU utilization was 87.75% at batch size 1 and 88.49% at batch size 2, with about 70% of 500 ms
+  samples below 95% while power stayed at 190–200 W.
+- **Batch size 1 → 2** (the only two power-of-two sizes that fit on the 32 GB GPU): +42.4%
+  processed-sample throughput and −26.8% GPU energy per 1,000 samples.
+- **Cheap to measure.** Instrumentation overhead stayed within 1.5% of the baseline, and
+  fine-grained energy was within 3.4–5.5% of CodeCarbon.
+
+![Throughput and total GPU energy per run at batch sizes 1 and 2 for the three measurement modes](analysis_outputs/vjepa2/figures/batch_size_trends.png)
+
+Figures and CSVs from the analysis are in [`analysis_outputs/vjepa2/`](analysis_outputs/vjepa2/).
+
+---
+
+## How to run everything
 
 This repository is wired for **V-JEPA2** video self-supervised pretraining on the COMP597 training stack: `launch.py`, Slurm wrappers, **FakeVideo** data, optional **CodeCarbon**, and a **fine-grained phase profiler** (`vjepa2_phases`). Everything below is V-JEPA2–specific unless noted.
 
 ---
 
-## What each part of the codebase does
+### What each part of the codebase does
 
 | Area                  | Path                                            | Role                                                                         |
 | --------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -27,7 +56,7 @@ Upstream JEPA library code lives under `src/models/vjepa2/jepa/` (vendored).
 
 ---
 
-## Prerequisites
+### Prerequisites
 
 1. **Python** with PyTorch, this repo’s dependencies, and (for Slurm) cluster modules as required by `scripts/srun.sh`.
 2. **FakeVideo CSV** — e.g. `videodataset.csv` listing clips. Default path used by the experiment runner:
@@ -37,7 +66,7 @@ Upstream JEPA library code lives under `src/models/vjepa2/jepa/` (vendored).
 
 ---
 
-## Training: `launch.py` and `scripts/srun.sh`
+### Training: `launch.py` and `scripts/srun.sh`
 
 Both accept the same configuration style. Minimal pattern:
 
@@ -60,7 +89,7 @@ The experiment runner generates full commands for you and saves them as `command
 
 ---
 
-## Three measurement modes (experiment matrix)
+### Three measurement modes (experiment matrix)
 
 | Mode         | CLI name      | Output folder        | `--trainer_stats` | Purpose                                                                      |
 | ------------ | ------------- | -------------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -70,7 +99,7 @@ The experiment runner generates full commands for you and saves them as `command
 
 ---
 
-## Experiment matrix: `scripts/run_vjepa2_experiments.py`
+### Experiment matrix: `scripts/run_vjepa2_experiments.py`
 
 Runs combinations of modes × batch sizes × run indices under `--results-root` (default `analysis_inputs/vjepa2/`). Writes `experiment_manifest.json`, per-run `run_metadata.json`, `command.sh`, and logs.
 
@@ -114,7 +143,7 @@ Directory layout for each run is documented in **`analysis_inputs/vjepa2/README.
 
 ---
 
-## Convenience scripts (thin wrappers)
+### Convenience scripts (thin wrappers)
 
 Each forwards extra arguments to `run_vjepa2_experiments.py` (`"$@"`).
 
@@ -132,7 +161,7 @@ Example:
 
 ---
 
-## Worker-count study
+### Worker-count study
 
 DataLoader workers use **spawn**; `src/masks` and `src/datasets` shims exist so worker processes can import JEPA code.
 
@@ -163,7 +192,7 @@ DataLoader workers use **spawn**; `src/masks` and `src/datasets` shims exist so 
 
 ---
 
-## Analysis: phase 10 (main)
+### Analysis: phase 10 (main)
 
 Aggregates structured inputs into **`analysis_outputs/vjepa2/`** (figures, CSVs, `analysis_summary.md`).
 
@@ -188,7 +217,7 @@ python3 scripts/analysis/phase10_analysis.py --help
 
 ---
 
-## Analysis: phase 11 (extended)
+### Analysis: phase 11 (extended)
 
 For validation comparisons and worker-count roots, after you have produced the corresponding trees under `analysis_inputs/`:
 
@@ -200,7 +229,7 @@ Defaults point at `analysis_inputs/vjepa2`, optional `vjepa2_validation_extra`, 
 
 ---
 
-## Model configuration (`model_configs.vjepa2`)
+### Model configuration (`model_configs.vjepa2`)
 
 Defined in `src/config/models/vjepa2/vjepa2_config.py`. CLI flags use the dotted form `--model_configs.vjepa2.<name>`. Notable fields:
 
@@ -219,7 +248,7 @@ Use `launch.py --help` (with `--model vjepa2`) to see the full generated list.
 
 ---
 
-## Slurm and other scripts
+### Slurm and other scripts
 
 - **`scripts/srun.sh`** — primary way to run V-JEPA2 on the teaching cluster; invoked by the experiment runner when `--launcher slurm`.
 - **`scripts/sbatch.sh`**, **`scripts/job.sh`**, **`scripts/bash_srun.sh`**, **`scripts/bash_job.sh`** — other submission patterns; use as your site documents.
@@ -227,7 +256,7 @@ Use `launch.py --help` (with `--model vjepa2`) to see the full generated list.
 
 ---
 
-## Troubleshooting
+### Troubleshooting
 
 - **CUDA OOM** — Reduce batch size, use `vit_large`, fewer frames, or smaller `crop_size`.
 - **Missing CSV** — Set `COMP597_JOB_STUDENT_STORAGE_DIR` or pass `--dataset-csv` with an absolute path.
@@ -236,7 +265,7 @@ Use `launch.py --help` (with `--model vjepa2`) to see the full generated list.
 
 ---
 
-## Further documentation
+### Further documentation
 
 - Raw run tree: **`analysis_inputs/vjepa2/README.md`**
 - Course-wide docs (environment, Slurm, code structure): **`docs/ToC.md`**
